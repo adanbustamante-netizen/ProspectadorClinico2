@@ -16,7 +16,7 @@ from utils.places_client    import enrich_all
 from utils.geocoding        import geocode_location
 from utils.supabase_client  import save_search, save_results, load_history, load_search_results
 from components.mapa        import render_map
-from components.ficha       import render_ficha
+from components.ficha       import render_ficha, generar_ficha_docx
 
 # ── Configuración de página ──────────────────────────────────────────────────
 st.set_page_config(
@@ -330,3 +330,11 @@ for i, org in enumerate(orgs_sorted, start=1):
         key=f"dl_{i}_{nombre[:10]}",
     )
     st.divider()
+
+st.download_button(
+    label="📄 Descargar ficha ARIA (Word)",
+    data=generar_ficha_docx(org),
+    file_name=f"Ficha_ARIA_{nombre[:40].replace(' ','_')}.docx",
+    mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    key=f"docx_{i}_{nombre[:10]}",
+)
