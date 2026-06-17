@@ -6,6 +6,9 @@ Renderiza una ficha de resultado completa usando st.container + HTML.
 import streamlit as st
 from urllib.parse import quote
 
+from io import BytesIO
+from docx import Document
+from datetime import date
 
 def _stars_html(rating: float) -> str:
     """Genera HTML de estrellas para un rating 0-5."""
@@ -297,3 +300,38 @@ def render_ficha(org: dict, index: int, perfil_especialidades: list):
                 st.link_button("🌐 Sitio web", web_btn, use_container_width=True)
             else:
                 st.button("🌐 Sin sitio web verificado", use_container_width=True, disabled=True)
+
+def generar_ficha_docx(resultado: dict):
+    doc = Document()
+
+    doc.add_heading("Ficha de Evaluación ARIA", level=1)
+    doc.add_paragraph(f"Fecha de revisión: {date.today()}")
+
+    campos = {
+        "Programa académico": resultado.get("programa", ""),
+        "Área / Facultad": resultado.get("area", ""),
+        "País objetivo": resultado.get("pais", ""),
+        "Tipo de oportunidad": resultado.get("tipo", ""),
+        "Institución / proveedor": resultado.get("institucion", ""),
+        "Sitio web": resultado.get("url", ""),
+        "Nivel de compatibilidad ARIA": resultado.get("compatibilidad", ""),
+        "Riesgo o limitación": resultado.get("riesgo", ""),
+    }
+
+    for titulo, valor in campos.items():
+        doc.add_paragraph(f"{titulo}: {valor}")
+
+    doc.add_heading("Requisitos de acceso", level=2)
+    doc.add_paragraph(resultado.get("requisitos", ""))
+
+    doc.add_heading("Evidencia encontrada", level=2)
+    doc.add_paragraph(resultado.get("evidencia", ""))
+
+    doc.add_heading("Acción recomendada", level=2)
+    doc.add_paragraph(resultado.get("accion", ""))
+
+    buffer = BytesIO()
+    doc.save(buffer)
+    buffer.seek(0)
+
+    return buffer
