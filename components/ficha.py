@@ -382,7 +382,30 @@ def render_ficha(org: dict, index: int, perfil_especialidades: list):
 
         # ── Botones pie ─────────────────────────────────────────────────────
         st.markdown("---")
-        c1, c2 = st.columns(2)
+c1, c2, c3 = st.columns(3)
+
+nombre_q = quote(f"{org.get('nombre','')} {org.get('ciudad','')}")
+maps_url_btn = places.get("maps_url") or f"https://www.google.com/maps/search/{nombre_q}"
+
+with c1:
+    st.link_button("📍 Ver en mapa", maps_url_btn, use_container_width=True)
+
+with c2:
+    web_btn = org.get("sitio_web") or places.get("web_places")
+    if web_btn:
+        st.link_button("🌐 Sitio web", web_btn, use_container_width=True)
+    else:
+        st.button("🌐 Sin sitio web verificado", use_container_width=True, disabled=True)
+
+with c3:
+    st.download_button(
+        label="📄 Descargar ficha ARIA",
+        data=generar_ficha_docx(org),
+        file_name=f"Ficha_ARIA_{org.get('nombre','centro')[:40].replace(' ','_')}.docx",
+        mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        key=f"ficha_docx_{index}_{org.get('nombre','centro')[:10]}",
+        use_container_width=True,
+    )
 
         # Fallback de mapa con codificación de URL segura (evita 404 con
         # paréntesis, acentos o espacios en el nombre de la organización)
