@@ -40,16 +40,96 @@ def _score_color(score: float) -> str:
         return "#185FA5"
     return "#854F0B"
 
-def generar_ficha_docx(resultado: dict):
+def generar_ficha_docx(org: dict):
     doc = Document()
 
-    doc.add_heading("Ficha de Evaluación ARIA", level=1)
+    places = org.get("places") or {}
+    scores = org.get("scores") or {}
+    jefe = org.get("jefe_ensenanza") or {}
+    specs = org.get("especialidades") or []
+
+    nombre = org.get("nombre", "Centro de práctica")
+    website = org.get("website", "")
+    direccion = places.get("direccion") or places.get("formatted_address") or ""
+    telefono = places.get("telefono") or places.get("phone") or ""
+    rating = places.get("rating", "")
+    score_global = scores.get("score_global", "")
+    resumen = org.get("resumen") or org.get("descripcion") or ""
+    tipo = org.get("tipo") or org.get("categoria") or ""
+    modalidad = org.get("modalidad") or ""
+    evidencia = org.get("evidencia") or org.get("fuente") or ""
+    requisitos = org.get("requisitos") or ""
+    recomendacion = org.get("accion") or org.get("recomendacion") or ""
+    riesgo = org.get("riesgo") or org.get("limitacion") or ""
+
+    doc.add_heading("Ficha Institucional de Centro de Práctica", level=1)
+
+    doc.add_paragraph("Sistema ARIA — Alliance & Relationship Intelligence Architecture")
     doc.add_paragraph(f"Fecha de revisión: {date.today()}")
 
-    doc.add_paragraph(f"Institución: {resultado.get('nombre', '')}")
-    doc.add_paragraph(f"Sitio web: {resultado.get('website', '')}")
+    doc.add_heading("1. Identificación del centro", level=2)
+    doc.add_paragraph(f"Nombre de la institución: {nombre}")
+    doc.add_paragraph(f"Tipo de institución: {tipo}")
+    doc.add_paragraph(f"Sitio web: {website}")
+    doc.add_paragraph(f"Dirección: {direccion}")
+    doc.add_paragraph(f"Teléfono: {telefono}")
+    doc.add_paragraph(f"Calificación pública: {rating}")
+
+    doc.add_heading("2. Descripción institucional", level=2)
     doc.add_paragraph(
-        f"Score ARIA: {resultado.get('scores', {}).get('score_global', '')}"
+        resumen if resumen else
+        "Centro identificado como posible espacio de práctica, rotación, estancia clínica o vinculación académica, sujeto a validación institucional posterior."
+    )
+
+    doc.add_heading("3. Perfil académico compatible", level=2)
+    if specs:
+        for esp in specs:
+            doc.add_paragraph(str(esp), style="List Bullet")
+    else:
+        doc.add_paragraph("No se identificaron especialidades específicas en la ficha original.")
+
+    doc.add_heading("4. Responsable o área de contacto", level=2)
+    doc.add_paragraph(f"Nombre: {jefe.get('nombre', 'No identificado')}")
+    doc.add_paragraph(f"Cargo: {jefe.get('cargo', 'No identificado')}")
+    doc.add_paragraph(f"Correo: {jefe.get('email', 'No identificado')}")
+    doc.add_paragraph(f"Teléfono: {jefe.get('telefono', 'No identificado')}")
+
+    doc.add_heading("5. Evaluación ARIA", level=2)
+    doc.add_paragraph(f"Alliance Fit Score / Score global: {score_global}")
+
+    doc.add_paragraph("Criterios de lectura:")
+    doc.add_paragraph("• Alta compatibilidad: centro con potencial claro para vinculación académica.")
+    doc.add_paragraph("• Compatibilidad media: requiere validación adicional.")
+    doc.add_paragraph("• Baja compatibilidad: oportunidad débil o con información insuficiente.")
+
+    doc.add_heading("6. Requisitos o condiciones de vinculación", level=2)
+    doc.add_paragraph(
+        requisitos if requisitos else
+        "No se identificaron requisitos públicos específicos. Se recomienda validar disponibilidad mediante contacto institucional directo."
+    )
+
+    doc.add_heading("7. Evidencia encontrada", level=2)
+    doc.add_paragraph(
+        evidencia if evidencia else
+        "La ficha se generó a partir de los datos recuperados por el buscador ARIA y fuentes públicas integradas en el análisis."
+    )
+
+    doc.add_heading("8. Riesgos o limitaciones", level=2)
+    doc.add_paragraph(
+        riesgo if riesgo else
+        "La información debe ser verificada antes de iniciar cualquier proceso formal de convenio, contacto académico o validación institucional."
+    )
+
+    doc.add_heading("9. Acción recomendada", level=2)
+    doc.add_paragraph(
+        recomendacion if recomendacion else
+        "Realizar contacto institucional formal para confirmar disponibilidad de campos clínicos, requisitos de convenio, responsable académico y condiciones de recepción de estudiantes."
+    )
+
+    doc.add_heading("10. Dictamen preliminar", level=2)
+    doc.add_paragraph(
+        "El centro presenta potencial de vinculación académica y debe ser evaluado como parte del proceso de priorización institucional de ARIA. "
+        "La recomendación final dependerá de la confirmación documental, la respuesta del área responsable y la compatibilidad con el programa académico correspondiente."
     )
 
     buffer = BytesIO()
@@ -57,7 +137,7 @@ def generar_ficha_docx(resultado: dict):
     buffer.seek(0)
 
     return buffer
-    
+
 def render_ficha(org: dict, index: int, perfil_especialidades: list):
     """
     Renderiza una ficha completa de organización.
