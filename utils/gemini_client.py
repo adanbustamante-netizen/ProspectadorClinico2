@@ -27,15 +27,37 @@ _client = genai.Client(api_key=st.secrets["GEMINI_API_KEY"])
 def _clean_json(text: str) -> str:
     """
     Extrae el JSON de la respuesta de Gemini, incluso cuando viene rodeado
-    de texto explicativo o citas de búsqueda (común cuando grounding está
-    activo). Estrategia: quitar fences markdown, luego recortar al primer
-    '{' y al último '}' del texto.
+    de texto explicativo, narración de dificultades, o citas de búsqueda
+    (común cuando grounding está activo y el modelo titubea ante pocos
+    resultados). Estrategia en 2 pasos:
+      1. Buscar específicamente un bloque que contenga la clave "perfil"
+         (presente solo en nuestro JSON de salida esperado), usando el
+         primer '{' que la preceda y haciendo balance de llaves para
+         encontrar su cierre correcto — más robusto que rfind('}') cuando
+         hay texto narrado con sus propias llaves sueltas antes/después.
+      2. Si eso falla, cae al método simple: quitar fences markdown y
+         recortar del primer '{' al último '}'.
     """
     text = text.strip()
     text = re.sub(r"^```json\s*", "", text)
     text = re.sub(r"^```\s*", "", text)
     text = re.sub(r"\s*```$", "", text)
 
+    # Paso 1: balance de llaves a partir del '{' que antecede a "perfil"
+    anchor = text.find('"perfil"')
+    if anchor != -1:
+        start = text.rfind("{", 0, anchor)
+        if start != -1:
+            depth = 0
+            for i in range(start, len(text)):
+                if text[i] == "{":
+                    depth += 1
+                elif text[i] == "}":
+                    depth -= 1
+                    if depth == 0:
+                        return text[start:i + 1].strip()
+
+    # Paso 2: fallback simple
     first = text.find("{")
     last  = text.rfind("}")
     if first != -1 and last != -1 and last > first:
@@ -75,6 +97,16 @@ CONTEXTO DE BÚSQUEDA:
   este radio exacto desde el centro de búsqueda. Si no estás seguro de que
   una organización esté dentro del radio, exclúyela (mejor un resultado
   menos que uno fuera de rango).
+- REGLA CRÍTICA DE COMPORTAMIENTO: si una búsqueda no da resultados claros,
+  NUNCA narres tus dificultades, dudas, intentos fallidos o disculpas en
+  texto plano (ej. "voy a intentar de otra forma", "tuve problemas
+  obteniendo resultados"). Esto rompe el formato de salida. En su lugar,
+  intenta SILENCIOSAMENTE estrategias de búsqueda alternativas (radio
+  ligeramente mayor en tu razonamiento interno, términos más generales), y
+  si genuinamente no encuentras ninguna organización válida en el radio,
+  responde DIRECTAMENTE con el JSON final completo, dejando el array
+  "organizaciones" vacío ([]) y metadata.total_encontradas en 0. Nunca
+  expliques el motivo en texto fuera del JSON.
 - Máximo de resultados: {max_results} (úsalo como techo, no como meta — si
   hay menos organizaciones válidas en el radio, devuelve solo esas)
 - Mínimo de especialidades/áreas por organización: {min_specs}
