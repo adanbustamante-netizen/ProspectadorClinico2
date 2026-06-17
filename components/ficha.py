@@ -5,6 +5,9 @@ Renderiza una ficha de resultado completa usando st.container + HTML.
 
 import streamlit as st
 from urllib.parse import quote
+from io import BytesIO
+from docx import Document
+from datetime import date
 
 
 def _stars_html(rating: float) -> str:
@@ -37,7 +40,24 @@ def _score_color(score: float) -> str:
         return "#185FA5"
     return "#854F0B"
 
+def generar_ficha_docx(resultado: dict):
+    doc = Document()
 
+    doc.add_heading("Ficha de Evaluación ARIA", level=1)
+    doc.add_paragraph(f"Fecha de revisión: {date.today()}")
+
+    doc.add_paragraph(f"Institución: {resultado.get('nombre', '')}")
+    doc.add_paragraph(f"Sitio web: {resultado.get('website', '')}")
+    doc.add_paragraph(
+        f"Score ARIA: {resultado.get('scores', {}).get('score_global', '')}"
+    )
+
+    buffer = BytesIO()
+    doc.save(buffer)
+    buffer.seek(0)
+
+    return buffer
+    
 def render_ficha(org: dict, index: int, perfil_especialidades: list):
     """
     Renderiza una ficha completa de organización.
